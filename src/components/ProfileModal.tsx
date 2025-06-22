@@ -188,10 +188,15 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
         <div className="flex items-center justify-between p-6 border-b border-gray-200" style={{ background: 'linear-gradient(135deg, #B6C2FC 0%, #A4D2FC 100%)' }}>
-          <h2 className="text-xl font-semibold text-white uppercase">ПРОФИЛЬ ПОЛЬЗОВАТЕЛЯ</h2>
+          <div className="flex items-center justify-between w-full">
+            <h2 className="text-xl font-semibold text-white uppercase">ПРОФИЛЬ ПОЛЬЗОВАТЕЛЯ</h2>
+            <div className="text-white text-sm uppercase">
+              {currentUser?.firstName} {currentUser?.lastName}
+            </div>
+          </div>
           <button
             onClick={onClose}
-            className="p-2 text-white hover:text-gray-200 hover:bg-white/20 rounded-lg transition-colors"
+            className="p-2 text-white hover:text-gray-200 hover:bg-white/20 rounded-lg transition-colors ml-4"
           >
             <X className="w-5 h-5" />
           </button>
@@ -206,7 +211,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                 ? 'text-white'
                 : 'text-gray-600 hover:bg-gray-100'
             }`}
-            style={{ backgroundColor: activeTab === 'profile' ? '#a4d2fc' : 'transparent' }}
+            style={{ backgroundColor: activeTab === 'profile' ? '#b6c2fc' : 'transparent' }}
           >
             <User className="w-4 h-4 inline mr-2" />
             ПРОФИЛЬ
@@ -218,7 +223,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                 ? 'text-white'
                 : 'text-gray-600 hover:bg-gray-100'
             }`}
-            style={{ backgroundColor: activeTab === 'stats' ? '#a4d2fc' : 'transparent' }}
+            style={{ backgroundColor: activeTab === 'stats' ? '#b6c2fc' : 'transparent' }}
           >
             <BarChart3 className="w-4 h-4 inline mr-2" />
             СТАТИСТИКА

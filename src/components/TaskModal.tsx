@@ -20,6 +20,7 @@ import {
   Play,
   Download,
   Pause,
+  Edit,
 } from 'lucide-react';
 import { Task, User as UserType, Comment, Attachment, VoiceMessage } from '../types';
 import { useApp } from '../context/AppContext';
@@ -52,6 +53,8 @@ export function TaskModal({ task, isOpen, onClose, defaultStatus = 'created' }: 
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [playingVoice, setPlayingVoice] = useState<string | null>(null);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingCommentText, setEditingCommentText] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
   const titleRef = useRef<HTMLTextAreaElement>(null);
@@ -89,6 +92,8 @@ export function TaskModal({ task, isOpen, onClose, defaultStatus = 'created' }: 
     }
     setNewAttachments([]);
     setHasUnsavedChanges(false);
+    setEditingCommentId(null);
+    setEditingCommentText('');
   }, [task, currentUser, defaultStatus]);
 
   // Отслеживание изменений
@@ -192,6 +197,32 @@ export function TaskModal({ task, isOpen, onClose, defaultStatus = 'created' }: 
 
     setComments([...comments, comment]);
     setNewComment('');
+  };
+
+  const handleEditComment = (commentId: string) => {
+    const comment = comments.find(c => c.id === commentId);
+    if (comment) {
+      setEditingCommentId(commentId);
+      setEditingCommentText(comment.content);
+    }
+  };
+
+  const handleSaveComment = (commentId: string) => {
+    if (!editingCommentText.trim()) return;
+
+    setComments(comments.map(comment => 
+      comment.id === commentId 
+        ? { ...comment, content: editingCommentText }
+        : comment
+    ));
+    setEditingCommentId(null);
+    setEditingCommentText('');
+  };
+
+  const handleDeleteComment = (commentId: string) => {
+    if (window.confirm('Вы уверены, что хотите удалить этот комментарий?')) {
+      setComments(comments.filter(comment => comment.id !== commentId));
+    }
   };
 
   const handleDelete = () => {
@@ -371,6 +402,11 @@ export function TaskModal({ task, isOpen, onClose, defaultStatus = 'created' }: 
     } else {
       setFormData({ ...formData, assigneeIds: formData.assigneeIds.filter(id => id !== userId) });
     }
+  };
+
+  // Проверка прав на редактирование/удаление комментариев
+  const canEditComment = (comment: Comment) => {
+    return currentUser?.role === 'admin' || comment.userId === currentUser?.id;
   };
 
   if (!isOpen) return null;
@@ -802,30 +838,86 @@ export function TaskModal({ task, isOpen, onClose, defaultStatus = 'created' }: 
                 <div className="space-y-3 mb-4 max-h-40 overflow-y-auto">
                   {comments.map((comment) => {
                     const commenter = users.find(user => user.id === comment.userId);
+                    const canEdit = canEditComment(comment);
+                    
                     return (
                       <div key={comment.id} className="bg-gray-50 rounded-xl p-3">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-medium overflow-hidden">
-                            {commenter?.avatar ? (
-                              <img
-                                src={commenter.avatar}
-                                alt="Avatar"
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full bg-gradient-to-br from-blue-300 to-teal-300 flex items-center justify-center">
-                                {commenter?.firstName?.charAt(0).toUpperCase()}{commenter?.lastName?.charAt(0).toUpperCase()}
-                              </div>
-                            )}
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-medium overflow-hidden">
+                              {commenter?.avatar ? (
+                                <img
+                                  src={commenter.avatar}
+                                  alt="Avatar"
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full bg-gradient-to-br from-blue-300 to-teal-300 flex items-center justify-center">
+                                  {commenter?.firstName?.charAt(0).toUpperCase()}{commenter?.lastName?.charAt(0).toUpperCase()}
+                                </div>
+                              )}
+                            </div>
+                            <span className="text-sm font-medium text-gray-900 uppercase">
+                              {commenter?.firstName} {commenter?.lastName}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {format(new Date(comment.createdAt), 'dd.MM.yyyy, HH:mm')}
+                            </span>
                           </div>
-                          <span className="text-sm font-medium text-gray-900 uppercase">
-                            {commenter?.firstName} {commenter?.lastName}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            {format(new Date(comment.createdAt), 'dd.MM.yyyy, HH:mm')}
-                          </span>
+                          {canEdit && (
+                            <div className="flex items-center space-x-1">
+                              <button
+                                type="button"
+                                onClick={() => handleEditComment(comment.id)}
+                                className="p-1 text-gray-400 hover:text-blue-600 rounded"
+                                title="РЕДАКТИРОВАТЬ"
+                              >
+                                <Edit className="w-3 h-3" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteComment(comment.id)}
+                                className="p-1 text-gray-400 hover:text-red-600 rounded"
+                                title="УДАЛИТЬ"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          )}
                         </div>
-                        <p className="text-sm text-gray-700 ml-8 leading-relaxed">{comment.content}</p>
+                        
+                        {editingCommentId === comment.id ? (
+                          <div className="ml-8 space-y-2">
+                            <textarea
+                              value={editingCommentText}
+                              onChange={(e) => setEditingCommentText(e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#b6c2fc] focus:border-[#b6c2fc] transition-colors text-sm resize-none"
+                              rows={2}
+                            />
+                            <div className="flex items-center space-x-2">
+                              <button
+                                type="button"
+                                onClick={() => handleSaveComment(comment.id)}
+                                className="px-3 py-1 text-white rounded-lg transition-colors text-xs font-medium uppercase"
+                                style={{ backgroundColor: '#b6c2fc' }}
+                              >
+                                СОХРАНИТЬ
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  set EditingCommentId(null);
+                                  setEditingCommentText('');
+                                }}
+                                className="px-3 py-1 text-gray-600 hover:text-gray-800 rounded-lg hover:bg-gray-100 transition-colors text-xs font-medium uppercase"
+                              >
+                                ОТМЕНА
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-gray-700 ml-8 leading-relaxed">{comment.content}</p>
+                        )}
                       </div>
                     );
                   })}

@@ -127,7 +127,7 @@ export function KanbanBoard() {
   // Мобильная версия - одна колонка на экран с горизонтальной прокруткой
   if (isMobile) {
     return (
-      <div className="h-[calc(100vh-180px)] overflow-hidden">
+      <div className="h-full overflow-hidden">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -181,14 +181,14 @@ export function KanbanBoard() {
 
   // Десктопная версия - все колонки видны с увеличенными отступами
   return (
-    <div className="h-[calc(100vh-180px)] overflow-auto">
+    <div className="h-full overflow-hidden">
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex justify-center space-x-8 p-6 min-w-full h-full">
+        <div className="flex justify-center space-x-8 p-6 h-full">
           {columns.map((column) => {
             const columnTasks = sortTasks(
               tasks.filter(task => task.status === column.id)

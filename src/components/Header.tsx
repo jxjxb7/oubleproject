@@ -30,7 +30,7 @@ interface HeaderProps {
 }
 
 export function Header({ currentView, onViewChange, onCreateTask }: HeaderProps) {
-  const { currentUser, logout, boards, currentBoardId, setCurrentBoard, getCurrentBoardTasks, deleteBoard, generateBoardLink, notifications, updateBoard } = useApp();
+  const { currentUser, logout, boards, currentBoardId, setCurrentBoard, getCurrentBoardTasks, deleteBoard, generateBoardLink, notifications, updateBoard, undoLastAction, redoLastAction, canUndo, canRedo } = useApp();
   const [showBoardDropdown, setShowBoardDropdown] = useState(false);
   const [showBoardModal, setShowBoardModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -38,8 +38,6 @@ export function Header({ currentView, onViewChange, onCreateTask }: HeaderProps)
   const [editingBoardId, setEditingBoardId] = useState<string | null>(null);
   const [editingBoardName, setEditingBoardName] = useState('');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const [actionHistory, setActionHistory] = useState<any[]>([]);
-  const [historyIndex, setHistoryIndex] = useState(-1);
 
   React.useEffect(() => {
     const handleResize = () => {
@@ -149,16 +147,14 @@ export function Header({ currentView, onViewChange, onCreateTask }: HeaderProps)
 
   // Функции для истории действий
   const handleUndo = () => {
-    if (historyIndex > 0) {
-      setHistoryIndex(historyIndex - 1);
-      // Здесь можно добавить логику отмены действий
+    if (canUndo) {
+      undoLastAction();
     }
   };
 
   const handleRedo = () => {
-    if (historyIndex < actionHistory.length - 1) {
-      setHistoryIndex(historyIndex + 1);
-      // Здесь можно добавить логику повтора действий
+    if (canRedo) {
+      redoLastAction();
     }
   };
 
@@ -299,16 +295,16 @@ export function Header({ currentView, onViewChange, onCreateTask }: HeaderProps)
           <div className="hidden md:flex items-center space-x-1">
             <button
               onClick={handleUndo}
-              disabled={historyIndex <= 0}
-              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+              disabled={!canUndo}
+              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               title="ОТМЕНИТЬ ДЕЙСТВИЕ"
             >
               <Undo className="w-4 h-4" />
             </button>
             <button
               onClick={handleRedo}
-              disabled={historyIndex >= actionHistory.length - 1}
-              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+              disabled={!canRedo}
+              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               title="ПОВТОРИТЬ ДЕЙСТВИЕ"
             >
               <Redo className="w-4 h-4" />

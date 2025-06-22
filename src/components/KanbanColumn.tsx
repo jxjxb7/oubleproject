@@ -41,9 +41,9 @@ export function KanbanColumn({
   };
 
   return (
-    <div className={`flex flex-col h-full ${isMobile ? 'w-full' : 'flex-1 max-w-md mx-2'}`}>
-      <div className={`border-2 border-dashed rounded-xl p-4 h-full ${colorClasses[color as keyof typeof colorClasses] || 'border-gray-200 bg-gray-50'} ${borderColors[color as keyof typeof borderColors] || 'border-gray-300'}`}>
-        <div className="flex items-center justify-between mb-4">
+    <div className={`flex flex-col ${isMobile ? 'w-full h-full' : 'flex-1 max-w-md mx-2 h-full'}`}>
+      <div className={`border-2 border-dashed rounded-xl p-4 flex flex-col h-full ${colorClasses[color as keyof typeof colorClasses] || 'border-gray-200 bg-gray-50'} ${borderColors[color as keyof typeof borderColors] || 'border-gray-300'}`}>
+        <div className="flex items-center justify-between mb-4 flex-shrink-0">
           <div className="flex items-center space-x-2">
             <Circle className={`w-3 h-3 fill-current ${color === 'blue' ? 'text-blue-500' : color === 'yellow' ? 'text-yellow-500' : 'text-green-500'}`} />
             <h2 className="font-semibold text-gray-900 uppercase text-sm">{title}</h2>
@@ -61,11 +61,7 @@ export function KanbanColumn({
 
         <div
           ref={setNodeRef}
-          className="space-y-3 min-h-24 flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent"
-          style={{ 
-            maxHeight: isMobile ? 'calc(100vh - 250px)' : 'calc(100vh - 200px)',
-            minHeight: isMobile ? 'calc(100vh - 250px)' : 'calc(100vh - 200px)'
-          }}
+          className="space-y-3 flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent"
         >
           <SortableContext items={tasks.map(task => task.id)} strategy={verticalListSortingStrategy}>
             {tasks.map((task) => (

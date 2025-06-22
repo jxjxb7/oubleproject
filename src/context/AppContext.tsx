@@ -34,6 +34,10 @@ interface AppContextType extends AppState {
   markAllNotificationsAsRead: () => void;
   setLastView: (view: string) => void;
   getLastView: () => string | null;
+  undoLastAction: () => void;
+  redoLastAction: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -68,7 +72,8 @@ type Action =
   | { type: 'UPDATE_BOARD'; payload: { id: string; updates: Partial<Board> } }
   | { type: 'DELETE_BOARD'; payload: string }
   | { type: 'ADD_NOTIFICATION'; payload: Notification }
-  | { type: 'UPDATE_NOTIFICATION'; payload: { id: string; updates: Partial<Notification> } };
+  | { type: 'UPDATE_NOTIFICATION'; payload: { id: string; updates: Partial<Notification> } }
+  | { type: 'DELETE_NOTIFICATION'; payload: string };
 
 function appReducer(state: AppState, action: Action): AppState {
   switch (action.type) {
@@ -188,6 +193,11 @@ function appReducer(state: AppState, action: Action): AppState {
             : notification
         ),
       };
+    case 'DELETE_NOTIFICATION':
+      return {
+        ...state,
+        notifications: state.notifications.filter(notification => notification.id !== action.payload),
+      };
     default:
       return state;
   }
@@ -203,6 +213,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [currentBoardId, setCurrentBoardId] = useLocalStorage<string | null>('planify-current-board', null);
   const [savedCredentials, setSavedCredentials] = useLocalStorage<{ username: string; password: string } | null>('planify-saved-credentials', null);
   const [lastView, setLastViewStorage] = useLocalStorage<string>('planify-last-view', 'board');
+  const [actionHistory, setActionHistory] = useLocalStorage<any[]>('planify-action-history', []);
+  const [historyIndex, setHistoryIndex] = useLocalStorage<number>('planify-history-index', -1);
 
   // Генерация уникального кода доски
   const generateBoardCode = (): string => {
@@ -349,6 +361,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setCurrentBoardId(state.currentBoardId);
     }
   }, [state.currentBoardId, setCurrentBoardId]);
+
+  // Функции для истории действий
+  const saveToHistory = (action: any) => {
+    const newHistory = actionHistory.slice(0, historyIndex + 1);
+    newHistory.push(action);
+    setActionHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
+  };
+
+  const undoLastAction = () => {
+    if (historyIndex > 0) {
+      setHistoryIndex(historyIndex - 1);
+      // Здесь можно добавить логику отмены действий
+    }
+  };
+
+  const redoLastAction = () => {
+    if (historyIndex < actionHistory.length - 1) {
+      setHistoryIndex(historyIndex + 1);
+      // Здесь можно добавить логику повтора действий
+    }
+  };
+
+  const canUndo = historyIndex > 0;
+  const canRedo = historyIndex < actionHistory.length - 1;
 
   // Функция добавления уведомления
   const addNotification = (notificationData: Omit<Notification, 'id' | 'createdAt'>) => {
@@ -573,6 +610,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         });
       }
     });
+
+    saveToHistory({ type: 'ADD_TASK', payload: newTask });
   };
 
   const updateTask = (taskId: string, updates: Partial<Task>) => {
@@ -602,7 +641,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         n => n.type === 'task_completed' && n.relatedId === taskId
       );
       completionNotifications.forEach(notification => {
-        dispatch({ type: 'UPDATE_NOTIFICATION', payload: { id: notification.id, updates: { isRead: true } } });
+        dispatch({ type: 'DELETE_NOTIFICATION', payload: notification.id });
       });
     }
 
@@ -622,10 +661,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
       });
     }
+
+    saveToHistory({ type: 'UPDATE_TASK', payload: { id: taskId, updates } });
   };
 
   const deleteTask = (taskId: string) => {
     dispatch({ type: 'DELETE_TASK', payload: taskId });
+    saveToHistory({ type: 'DELETE_TASK', payload: taskId });
   };
 
   const toggleTaskPin = (taskId: string) => {
@@ -851,6 +893,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     markAllNotificationsAsRead,
     setLastView,
     getLastView,
+    undoLastAction,
+    redoLastAction,
+    canUndo,
+    canRedo,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
